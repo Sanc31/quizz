@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QCM : Graphiques & Tableaux (Format Carré)</title>
+    <title>QCM : Graphiques & Tableaux (Fix Alignement)</title>
     
     <script>
       window.MathJax = {
@@ -52,11 +52,10 @@
             background-color: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease;
         }
 
-        /* --- ZONE VISUELLE UNIFORME --- */
+        /* --- ZONE VISUELLE --- */
         .visual-container {
             width: 100%; 
-            /* HAUTEUR FIXE POUR TOUT LE MONDE (Graphiques et Tableaux) */
-            height: 350px; 
+            height: 350px; /* Hauteur fixe et "carrée" */
             margin: 0 auto 25px auto;
             border: 2px solid #333;
             border-radius: 12px;
@@ -78,23 +77,35 @@
             font-family: 'Segoe UI', sans-serif;
         }
         .tv-row {
-            display: grid; grid-template-columns: 90px 1fr;
+            display: grid; 
+            grid-template-columns: 90px 1fr; /* Colonne 1 fixe, Colonne 2 flexible */
             border-bottom: 2px solid #333;
+            width: 100%;
         }
-        /* La dernière ligne (f(x)) prend tout l'espace restant */
-        .tv-row:last-child { border-bottom: none; flex-grow: 1; position: relative; }
+        /* La dernière ligne prend tout l'espace restant */
+        .tv-row:last-child { 
+            border-bottom: none; 
+            flex-grow: 1; 
+            /* On enlève position:relative d'ici pour éviter le bug de décalage */
+        }
         
         .tv-header {
             background: #f4f4f4; border-right: 2px solid #333;
             display: flex; align-items: center; justify-content: center;
             font-weight: bold; font-style: italic; font-size: 1.2rem;
+            height: 100%;
         }
         .tv-data {
             display: flex; justify-content: space-between; align-items: center;
             padding: 0 40px; font-size: 1.2rem; font-weight: bold;
         }
+        
+        /* Correction du conteneur Canvas */
         .tv-canvas-container {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            position: relative; /* Relatif à sa colonne grid, pas à la ligne entière */
+            width: 100%; 
+            height: 100%;
+            overflow: hidden;
         }
         canvas { display: block; width: 100%; height: 100%; }
 
@@ -106,7 +117,6 @@
         }
         @media (max-width: 600px) {
             .options-grid { grid-template-columns: 1fr; }
-            /* Sur mobile on réduit un peu pour que ça tienne dans l'écran */
             .visual-container { height: 300px !important; } 
         }
 
@@ -456,7 +466,6 @@
         // RENDU VISUEL (Plot ou Table)
         const visualArea = document.getElementById('visual-area');
         visualArea.innerHTML = ''; 
-        // NOTE: On ne change plus visualArea.style.height ici, c'est fixe en CSS (350px)
 
         if(qData.type === 'plot') {
             setTimeout(() => renderFunctionPlot(qData.plotConfig, false), 50);
@@ -513,13 +522,17 @@
         const canvas = document.getElementById('tvCanvas');
         if(!canvas) return;
         
+        // On récupère la largeur exacte du conteneur parent (la cellule de droite)
         const container = canvas.parentElement;
         canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight; // Prend toute la hauteur dispo
+        canvas.height = container.clientHeight;
 
         const ctx = canvas.getContext('2d');
         const rowX = document.getElementById('rowX');
-        const containerRect = rowX.getBoundingClientRect();
+        // Rectangle de rowX pour comparer les positions
+        const rowXRect = rowX.getBoundingClientRect();
+        // Rectangle du container canvas pour normaliser
+        const canvasRect = container.getBoundingClientRect();
 
         ctx.font = "bold 20px 'Segoe UI', sans-serif";
         ctx.lineWidth = 2.5;
@@ -529,13 +542,15 @@
         const coords = [];
         
         const centerY = canvas.height / 2;
-        // On garde un gap confortable mais pas excessif si la fenetre est très haute
         const gap = Math.min((canvas.height / 2) - 30, 80); 
 
         spans.forEach((span, i) => {
             const spanRect = span.getBoundingClientRect();
-            // Calcul du centre relatif au tableau
-            const centerX = spanRect.left - containerRect.left + spanRect.width / 2;
+            // Calcul précis : 
+            // Position absolue du centre du span (spanRect.left + w/2)
+            // MOINS Position absolue du bord gauche du canvas (canvasRect.left)
+            const centerX = (spanRect.left + spanRect.width / 2) - canvasRect.left;
+            
             const isHigh = config.fx[i].type === 'max';
             
             coords.push({
