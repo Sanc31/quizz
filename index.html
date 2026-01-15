@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QCM : Graphiques & Tableaux (Navigation Libre)</title>
+    <title>QCM : Graphiques & Tableaux (Format Carré)</title>
     
     <script>
       window.MathJax = {
@@ -19,7 +19,7 @@
     <style>
         :root {
             --primary: #4F46E5;
-            --secondary: #6B7280; /* Nouvelle couleur pour le bouton Précédent */
+            --secondary: #6B7280;
             --success: #10B981;
             --warning: #F59E0B;
             --danger: #EF4444;
@@ -52,16 +52,17 @@
             background-color: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease;
         }
 
-        /* --- ZONE VISUELLE --- */
+        /* --- ZONE VISUELLE UNIFORME --- */
         .visual-container {
             width: 100%; 
+            /* HAUTEUR FIXE POUR TOUT LE MONDE (Graphiques et Tableaux) */
+            height: 350px; 
             margin: 0 auto 25px auto;
             border: 2px solid #333;
             border-radius: 12px;
             background: #fff;
             display: flex; justify-content: center; align-items: center; overflow: hidden;
             position: relative;
-            transition: height 0.3s ease;
         }
 
         /* Styles Function-Plot */
@@ -80,7 +81,8 @@
             display: grid; grid-template-columns: 90px 1fr;
             border-bottom: 2px solid #333;
         }
-        .tv-row:last-child { border-bottom: none; flex-grow: 1; }
+        /* La dernière ligne (f(x)) prend tout l'espace restant */
+        .tv-row:last-child { border-bottom: none; flex-grow: 1; position: relative; }
         
         .tv-header {
             background: #f4f4f4; border-right: 2px solid #333;
@@ -92,7 +94,7 @@
             padding: 0 40px; font-size: 1.2rem; font-weight: bold;
         }
         .tv-canvas-container {
-            position: relative; width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
         }
         canvas { display: block; width: 100%; height: 100%; }
 
@@ -104,7 +106,8 @@
         }
         @media (max-width: 600px) {
             .options-grid { grid-template-columns: 1fr; }
-            .visual-container { height: 250px !important; } /* Hauteur mobile réduite aussi */
+            /* Sur mobile on réduit un peu pour que ça tienne dans l'écran */
+            .visual-container { height: 300px !important; } 
         }
 
         .btn-option {
@@ -122,7 +125,6 @@
         .feedback.hint { background-color: #FFFBEB; border-left: 5px solid var(--warning); color: #92400E; }
         .feedback.success { background-color: #D1FAE5; border-left: 5px solid var(--success); color: #065F46; }
 
-        /* MODIF: Controls avec Space-Between pour Précédent/Suivant */
         .controls { display: flex; justify-content: space-between; margin-top: 20px; height: 50px; }
         
         .btn-nav {
@@ -133,7 +135,7 @@
         .btn-next { background-color: var(--primary); }
         .btn-next:hover { background-color: #4338ca; }
 
-        .btn-prev { background-color: var(--secondary); display: none; } /* Caché par défaut */
+        .btn-prev { background-color: var(--secondary); display: none; }
         .btn-prev:hover { background-color: #4b5563; }
         
         .result-screen { text-align: center; display: none; padding: 40px 0; }
@@ -174,7 +176,6 @@
         
         <div class="controls">
             <button class="btn-nav btn-prev" id="btn-prev" onclick="prevQuestion()">← Précédent</button>
-            
             <button class="btn-nav btn-next" id="btn-next" onclick="nextQuestion()">Question Suivante →</button>
         </div>
     </div>
@@ -426,7 +427,6 @@
         document.getElementById('success-area').style.display = 'none';
 
         // GESTION DES BOUTONS DE NAVIGATION
-        // 1. Bouton Suivant : Toujours visible
         const nextBtn = document.getElementById('btn-next');
         nextBtn.style.display = 'block';
         if (currentQIndex === quizData.length - 1) {
@@ -435,7 +435,6 @@
             nextBtn.innerText = "Question Suivante →";
         }
 
-        // 2. Bouton Précédent : Visible sauf si première question
         const prevBtn = document.getElementById('btn-prev');
         if (currentQIndex > 0) {
             prevBtn.style.display = 'block';
@@ -454,15 +453,14 @@
             optsDiv.appendChild(btn);
         });
 
-        // RENDU VISUEL (Plot ou Table) - MODIFICATION HAUTEUR ICI
+        // RENDU VISUEL (Plot ou Table)
         const visualArea = document.getElementById('visual-area');
         visualArea.innerHTML = ''; 
+        // NOTE: On ne change plus visualArea.style.height ici, c'est fixe en CSS (350px)
 
         if(qData.type === 'plot') {
-            visualArea.style.height = "280px"; // RÉDUIT (Avant 400px)
             setTimeout(() => renderFunctionPlot(qData.plotConfig, false), 50);
         } else if (qData.type === 'table') {
-            visualArea.style.height = "220px"; // RÉDUIT (Avant 320px)
             setTimeout(() => renderTable(qData.tableConfig, false), 50);
         }
 
@@ -495,7 +493,8 @@
 
         const html = `
         <div class="tv-wrapper">
-            <div class="tv-row" style="height: 50px;"> <div class="tv-header">x</div>
+            <div class="tv-row" style="height: 70px;"> 
+                <div class="tv-header">x</div>
                 <div class="tv-data" id="rowX">${xHTML}</div>
             </div>
             <div class="tv-row">
@@ -514,12 +513,13 @@
         const canvas = document.getElementById('tvCanvas');
         if(!canvas) return;
         
+        const container = canvas.parentElement;
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight; // Prend toute la hauteur dispo
+
         const ctx = canvas.getContext('2d');
         const rowX = document.getElementById('rowX');
         const containerRect = rowX.getBoundingClientRect();
-        
-        canvas.width = containerRect.width;
-        canvas.height = canvas.parentElement.offsetHeight;
 
         ctx.font = "bold 20px 'Segoe UI', sans-serif";
         ctx.lineWidth = 2.5;
@@ -529,10 +529,12 @@
         const coords = [];
         
         const centerY = canvas.height / 2;
-        const gap = 35; // Gap réduit car hauteur réduite
+        // On garde un gap confortable mais pas excessif si la fenetre est très haute
+        const gap = Math.min((canvas.height / 2) - 30, 80); 
 
         spans.forEach((span, i) => {
             const spanRect = span.getBoundingClientRect();
+            // Calcul du centre relatif au tableau
             const centerX = spanRect.left - containerRect.left + spanRect.width / 2;
             const isHigh = config.fx[i].type === 'max';
             
@@ -591,18 +593,13 @@
 
     // --- JEU ---
     function checkAnswer(optionData, btnElement) {
-        // NOTE: On n'empêche plus de cliquer si on a déjà répondu juste, 
-        // sauf si on veut bloquer le spam.
-        // Ici on laisse actif pour permettre de changer si besoin, 
-        // mais le bouton 'next' est déjà là de toute façon.
-
         const hintArea = document.getElementById('hint-area');
         const successArea = document.getElementById('success-area');
         const qData = quizData[currentQIndex];
 
         if (optionData.correct) {
             btnElement.classList.add('correct');
-            document.querySelectorAll('.btn-option').forEach(b => b.disabled = true); // Bloque les autres choix
+            document.querySelectorAll('.btn-option').forEach(b => b.disabled = true);
             hintArea.style.display = 'none';
             successArea.innerHTML = `<strong>✅ Bravo !</strong><br>${qData.explanation}`;
             successArea.style.display = 'block';
@@ -635,7 +632,6 @@
         else if(qData.type === 'table') drawTableCanvas(qData.tableConfig, showHints); 
     }
 
-    // Fonction Suivante (modifiée pour ne plus vérifier la réponse)
     function nextQuestion() {
         if (currentQIndex < quizData.length - 1) {
             currentQIndex++;
@@ -645,7 +641,6 @@
         }
     }
 
-    // Nouvelle Fonction Précédente
     function prevQuestion() {
         if (currentQIndex > 0) {
             currentQIndex--;
