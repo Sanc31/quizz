@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QCM : Graphiques & Tableaux (Final)</title>
+    <title>QCM : Graphiques & Tableaux (Navigation Libre)</title>
     
     <script>
       window.MathJax = {
@@ -19,6 +19,7 @@
     <style>
         :root {
             --primary: #4F46E5;
+            --secondary: #6B7280; /* Nouvelle couleur pour le bouton Précédent */
             --success: #10B981;
             --warning: #F59E0B;
             --danger: #EF4444;
@@ -76,7 +77,7 @@
             font-family: 'Segoe UI', sans-serif;
         }
         .tv-row {
-            display: grid; grid-template-columns: 90px 1fr; /* Un peu plus large pour l'entête */
+            display: grid; grid-template-columns: 90px 1fr;
             border-bottom: 2px solid #333;
         }
         .tv-row:last-child { border-bottom: none; flex-grow: 1; }
@@ -84,11 +85,11 @@
         .tv-header {
             background: #f4f4f4; border-right: 2px solid #333;
             display: flex; align-items: center; justify-content: center;
-            font-weight: bold; font-style: italic; font-size: 1.3rem;
+            font-weight: bold; font-style: italic; font-size: 1.2rem;
         }
         .tv-data {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 0 40px; font-size: 1.3rem; font-weight: bold;
+            padding: 0 40px; font-size: 1.2rem; font-weight: bold;
         }
         .tv-canvas-container {
             position: relative; width: 100%; height: 100%;
@@ -103,7 +104,7 @@
         }
         @media (max-width: 600px) {
             .options-grid { grid-template-columns: 1fr; }
-            .visual-container { height: 300px !important; }
+            .visual-container { height: 250px !important; } /* Hauteur mobile réduite aussi */
         }
 
         .btn-option {
@@ -121,12 +122,19 @@
         .feedback.hint { background-color: #FFFBEB; border-left: 5px solid var(--warning); color: #92400E; }
         .feedback.success { background-color: #D1FAE5; border-left: 5px solid var(--success); color: #065F46; }
 
-        .controls { display: flex; justify-content: flex-end; margin-top: 20px; height: 50px; }
-        .btn-next {
-            background-color: var(--primary); color: white; border: none;
-            padding: 12px 24px; border-radius: 8px; font-size: 1rem; cursor: pointer; display: none;
+        /* MODIF: Controls avec Space-Between pour Précédent/Suivant */
+        .controls { display: flex; justify-content: space-between; margin-top: 20px; height: 50px; }
+        
+        .btn-nav {
+            color: white; border: none;
+            padding: 12px 24px; border-radius: 8px; font-size: 1rem; cursor: pointer;
+            display: inline-block;
         }
+        .btn-next { background-color: var(--primary); }
         .btn-next:hover { background-color: #4338ca; }
+
+        .btn-prev { background-color: var(--secondary); display: none; } /* Caché par défaut */
+        .btn-prev:hover { background-color: #4b5563; }
         
         .result-screen { text-align: center; display: none; padding: 40px 0; }
         .score-circle {
@@ -163,8 +171,11 @@
         <div class="options-grid" id="options-container"></div>
         <div class="feedback hint" id="hint-area"></div>
         <div class="feedback success" id="success-area"></div>
+        
         <div class="controls">
-            <button class="btn-next" id="btn-next" onclick="nextQuestion()">Question Suivante →</button>
+            <button class="btn-nav btn-prev" id="btn-prev" onclick="prevQuestion()">← Précédent</button>
+            
+            <button class="btn-nav btn-next" id="btn-next" onclick="nextQuestion()">Question Suivante →</button>
         </div>
     </div>
 
@@ -410,10 +421,27 @@
         document.getElementById('current-q').innerText = currentQIndex + 1;
         document.getElementById('progress-bar').style.width = ((currentQIndex) / quizData.length * 100) + "%";
         
-        // Reset Feedback/Buttons
+        // Reset Feedback
         document.getElementById('hint-area').style.display = 'none';
         document.getElementById('success-area').style.display = 'none';
-        document.getElementById('btn-next').style.display = 'none';
+
+        // GESTION DES BOUTONS DE NAVIGATION
+        // 1. Bouton Suivant : Toujours visible
+        const nextBtn = document.getElementById('btn-next');
+        nextBtn.style.display = 'block';
+        if (currentQIndex === quizData.length - 1) {
+            nextBtn.innerText = "Voir les résultats 🏆";
+        } else {
+            nextBtn.innerText = "Question Suivante →";
+        }
+
+        // 2. Bouton Précédent : Visible sauf si première question
+        const prevBtn = document.getElementById('btn-prev');
+        if (currentQIndex > 0) {
+            prevBtn.style.display = 'block';
+        } else {
+            prevBtn.style.display = 'none';
+        }
 
         // Génération Options
         const optsDiv = document.getElementById('options-container');
@@ -426,15 +454,15 @@
             optsDiv.appendChild(btn);
         });
 
-        // RENDU VISUEL (Plot ou Table)
+        // RENDU VISUEL (Plot ou Table) - MODIFICATION HAUTEUR ICI
         const visualArea = document.getElementById('visual-area');
         visualArea.innerHTML = ''; 
 
         if(qData.type === 'plot') {
-            visualArea.style.height = "400px"; // Grand pour les courbes
+            visualArea.style.height = "280px"; // RÉDUIT (Avant 400px)
             setTimeout(() => renderFunctionPlot(qData.plotConfig, false), 50);
         } else if (qData.type === 'table') {
-            visualArea.style.height = "320px"; // Hauteur ajustée pour tableau
+            visualArea.style.height = "220px"; // RÉDUIT (Avant 320px)
             setTimeout(() => renderTable(qData.tableConfig, false), 50);
         }
 
@@ -467,8 +495,7 @@
 
         const html = `
         <div class="tv-wrapper">
-            <div class="tv-row" style="height: 70px;">
-                <div class="tv-header">x</div>
+            <div class="tv-row" style="height: 50px;"> <div class="tv-header">x</div>
                 <div class="tv-data" id="rowX">${xHTML}</div>
             </div>
             <div class="tv-row">
@@ -502,7 +529,7 @@
         const coords = [];
         
         const centerY = canvas.height / 2;
-        const gap = 50; 
+        const gap = 35; // Gap réduit car hauteur réduite
 
         spans.forEach((span, i) => {
             const spanRect = span.getBoundingClientRect();
@@ -564,7 +591,10 @@
 
     // --- JEU ---
     function checkAnswer(optionData, btnElement) {
-        if(document.getElementById('btn-next').style.display === 'block') return;
+        // NOTE: On n'empêche plus de cliquer si on a déjà répondu juste, 
+        // sauf si on veut bloquer le spam.
+        // Ici on laisse actif pour permettre de changer si besoin, 
+        // mais le bouton 'next' est déjà là de toute façon.
 
         const hintArea = document.getElementById('hint-area');
         const successArea = document.getElementById('success-area');
@@ -572,7 +602,7 @@
 
         if (optionData.correct) {
             btnElement.classList.add('correct');
-            document.querySelectorAll('.btn-option').forEach(b => b.disabled = true);
+            document.querySelectorAll('.btn-option').forEach(b => b.disabled = true); // Bloque les autres choix
             hintArea.style.display = 'none';
             successArea.innerHTML = `<strong>✅ Bravo !</strong><br>${qData.explanation}`;
             successArea.style.display = 'block';
@@ -586,10 +616,6 @@
             areHintsVisible = true;
             refreshVisual(true);
             
-            const nextBtn = document.getElementById('btn-next');
-            if (currentQIndex === quizData.length - 1) nextBtn.innerText = "Voir les résultats 🏆";
-            nextBtn.style.display = 'block';
-
         } else {
             hasFailedCurrent = true;
             btnElement.classList.add('wrong');
@@ -609,12 +635,21 @@
         else if(qData.type === 'table') drawTableCanvas(qData.tableConfig, showHints); 
     }
 
+    // Fonction Suivante (modifiée pour ne plus vérifier la réponse)
     function nextQuestion() {
         if (currentQIndex < quizData.length - 1) {
             currentQIndex++;
             loadQuestion();
         } else {
             showResults();
+        }
+    }
+
+    // Nouvelle Fonction Précédente
+    function prevQuestion() {
+        if (currentQIndex > 0) {
+            currentQIndex--;
+            loadQuestion();
         }
     }
 
